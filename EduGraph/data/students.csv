@@ -1,0 +1,26 @@
+student_id,student_name,subject,marks
+101,Aarav Sharma,Mathematics,85
+101,Aarav Sharma,Physics,78
+101,Aarav Sharma,Chemistry,82
+101,Aarav Sharma,English,90
+101,Aarav Sharma,Computer Science,95
+102,Vivaan Patel,Mathematics,65
+102,Vivaan Patel,Physics,70
+102,Vivaan Patel,Chemistry,68
+102,Vivaan Patel,English,75
+102,Vivaan Patel,Computer Science,80
+103,Diya Gupta,Mathematics,92
+103,Diya Gupta,Physics,88
+103,Diya Gupta,Chemistry,91
+103,Diya Gupta,English,89
+103,Diya Gupta,Computer Science,94
+104,Reyansh Kumar,Mathematics,55
+104,Reyansh Kumar,Physics,60
+104,Reyansh Kumar,Chemistry,58
+104,Reyansh Kumar,English,65
+104,Reyansh Kumar,Computer Science,72
+105,Ananya Singh,Mathematics,78
+105,Ananya Singh,Physics,82
+105,Ananya Singh,Chemistry,80
+105,Ananya Singh,English,85
+105,Ananya Singh,Computer Science,88

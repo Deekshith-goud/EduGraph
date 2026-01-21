@@ -1,8 +1,8 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Start with default root/no-password usage pattern frequently found in dev envs
-# It's easy for the user to change this file if needed.
+# MySQL Connection URL
+# Format: mysql+pymysql://<username>:<password>@<host>:<port>/<database>
 SQLALCHEMY_DATABASE_URL = "mysql+pymysql://root:@localhost:3306/edugraph"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)

@@ -1,159 +1,161 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { fetchStudents } from '../api';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { User, BookOpen, Trophy } from 'lucide-react';
 
-const COLORS = ['#58a6ff', '#bc8cff', '#3fb950', '#f85149', '#d29922', '#8b949e'];
+const COLORS = ['#8b5cf6', '#ec4899', '#10b981', '#f59e0b', '#3b82f6', '#6366f1'];
 
-const Dashboard = () => {
+const Dashboard = ({ refreshTrigger }) => {
   const [students, setStudents] = useState([]);
   const [selectedStudent, setSelectedStudent] = useState(null);
-  const [performanceData, setPerformanceData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchStudents();
-  }, []);
+    loadData();
+  }, [refreshTrigger]);
 
-  useEffect(() => {
-    if (selectedStudent) {
-      fetchPerformance(selectedStudent.id);
-    }
-  }, [selectedStudent]);
-
-  const fetchStudents = async () => {
+  const loadData = async () => {
+    setLoading(true);
     try {
-      const res = await axios.get('http://localhost:8000/students');
+      const res = await fetchStudents();
       setStudents(res.data);
-      if (res.data.length > 0 && !selectedStudent) {
-        setSelectedStudent(res.data[0]);
+      if (res.data.length > 0) {
+        // Keep selected if exists and still valid, else select first
+        setSelectedStudent(prev => {
+          if (prev && res.data.find(s => s.id === prev.id)) {
+            return res.data.find(s => s.id === prev.id);
+          }
+          return res.data[0];
+        });
+      } else {
+        setSelectedStudent(null);
       }
-      setLoading(false);
     } catch (error) {
-      console.error("Error fetching students", error);
+      console.error("Error loading students:", error);
+    } finally {
       setLoading(false);
     }
   };
 
-  const fetchPerformance = async (id) => {
-    try {
-      const res = await axios.get(`http://localhost:8000/students/${id}`);
-      setPerformanceData(res.data);
-    } catch (error) {
-      console.error("Error fetching performance", error);
-    }
-  };
-
-  if (loading) {
-    return <div style={{ textAlign: 'center', padding: '2rem' }}>Loading data...</div>;
-  }
-
+  if (loading) return <div className="container" style={{ textAlign: 'center', padding: '4rem', color: 'var(--text-secondary)' }}>Loading analytics...</div>;
+  
   if (students.length === 0) {
-    return <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-secondary)' }}>No data available. Please upload a CSV file.</div>;
+    return (
+      <div className="container" style={{ textAlign: 'center', padding: '4rem', border: '1px dashed var(--border)', borderRadius: '12px' }}>
+        <h3 style={{ color: 'var(--text-secondary)' }}>No Data Available</h3>
+        <p style={{ color: 'var(--text-secondary)' }}>Please upload a CSV file to get started.</p>
+      </div>
+    );
   }
+
+  const scores = selectedStudent ? selectedStudent.scores : [];
+  const totalMarks = scores.reduce((sum, item) => sum + item.marks, 0);
+  const averageMarks = scores.length > 0 ? (totalMarks / scores.length).toFixed(1) : 0;
 
   return (
-    <div style={{ display: 'flex', gap: '2rem', height: '100%', flexDirection: 'column' }}>
+    <div style={{ display: 'flex', gap: '2rem', flexDirection: 'column' }}>
       
-      {/* Filters / Selectors */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', borderBottom: '1px solid var(--card-border)', paddingBottom: '1rem' }}>
-        <h3 style={{ margin: 0, whiteSpace: 'nowrap' }}>Select Student:</h3>
+      {/* Selector */}
+      <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <User size={20} color="var(--primary)" />
+        <span style={{ fontWeight: '500' }}>Select Student:</span>
         <select 
-          style={{
-            padding: '0.5rem',
-            background: 'rgba(255,255,255,0.05)',
-            border: '1px solid var(--card-border)',
-            borderRadius: '6px',
-            color: 'var(--text-primary)',
-            fontSize: '1rem',
-            minWidth: '200px'
-          }}
           value={selectedStudent?.id || ''}
-          onChange={(e) => {
-            const student = students.find(s => s.id === parseInt(e.target.value));
-            setSelectedStudent(student);
+          onChange={(e) => setSelectedStudent(students.find(s => s.id === parseInt(e.target.value)))}
+          style={{
+            background: 'var(--bg-dark)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border)',
+            padding: '0.5rem 1rem',
+            borderRadius: '6px',
+            minWidth: '250px',
+            fontSize: '1rem'
           }}
         >
-          {students.map(s => (
-            <option key={s.id} value={s.id}>{s.name} ({s.student_id_csv})</option>
+          {students.map(student => (
+            <option key={student.id} value={student.id}>
+              {student.name} (ID: {student.student_csv_id})
+            </option>
           ))}
         </select>
       </div>
 
-      {performanceData && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          
-          {/* Header Stats? */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-             <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(88, 166, 255, 0.1)' }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Total Marks</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-                  {performanceData.scores.reduce((acc, curr) => acc + curr.marks, 0)}
-                </div>
-             </div>
-             <div className="glass-card" style={{ padding: '1.5rem', background: 'rgba(188, 140, 255, 0.1)' }}>
-                <div style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Average Score</div>
-                <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>
-                  {(performanceData.scores.reduce((acc, curr) => acc + curr.marks, 0) / performanceData.scores.length).toFixed(1)}%
-                </div>
-             </div>
+      {/* Stats Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Total Score</span>
+            <Trophy size={18} color="#f59e0b" />
           </div>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{totalMarks}</div>
+        </div>
+        <div className="card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '1rem' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Average Percentage</span>
+            <BookOpen size={18} color="#3b82f6" />
+          </div>
+          <div style={{ fontSize: '2rem', fontWeight: 'bold' }}>{averageMarks}%</div>
+        </div>
+      </div>
 
-          {/* Charts Row */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))', gap: '2rem' }}>
-            
-            {/* Bar Chart */}
-            <div className="glass-card" style={{ padding: '1.5rem', minHeight: '400px' }}>
-              <h4 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Subject-wise Performance</h4>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={performanceData.scores}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
-                  <XAxis dataKey="subject" stroke="var(--text-secondary)" />
-                  <YAxis stroke="var(--text-secondary)" />
-                  <RechartsTooltip 
-                    contentStyle={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px' }}
-                    itemStyle={{ color: '#f0f6fc' }}
-                  />
-                  <Bar dataKey="marks" fill="#58a6ff" radius={[4, 4, 0, 0]}>
-                    {performanceData.scores.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Pie Chart */}
-            <div className="glass-card" style={{ padding: '1.5rem', minHeight: '400px' }}>
-              <h4 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>Score Distribution</h4>
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={performanceData.scores}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    paddingAngle={5}
-                    dataKey="marks"
-                    nameKey="subject"
-                  >
-                    {performanceData.scores.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip 
-                     contentStyle={{ backgroundColor: '#161b22', border: '1px solid #30363d', borderRadius: '8px' }}
-                     itemStyle={{ color: '#f0f6fc' }}
-                  />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-
+      {/* Charts */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(500px, 1fr))', gap: '2rem' }}>
+        
+        {/* Bar Chart */}
+        <div className="card">
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Subject Performance</h3>
+          <div style={{ height: '350px', width: '100%' }}>
+            <ResponsiveContainer>
+              <BarChart data={scores}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+                <XAxis dataKey="subject" stroke="#a1a1aa" tick={{fontSize: 12}} />
+                <YAxis stroke="#a1a1aa" tick={{fontSize: 12}} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                  itemStyle={{ color: '#fafafa' }}
+                  cursor={{ fill: '#27272a', opacity: 0.4 }}
+                />
+                <Bar dataKey="marks" radius={[4, 4, 0, 0]}>
+                  {scores.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
-      )}
+
+        {/* Pie Chart */}
+        <div className="card">
+          <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem' }}>Distribution Analysis</h3>
+          <div style={{ height: '350px', width: '100%' }}>
+            <ResponsiveContainer>
+              <PieChart>
+                <Pie
+                  data={scores}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={80}
+                  outerRadius={120}
+                  paddingAngle={4}
+                  dataKey="marks"
+                  nameKey="subject"
+                  stroke="none"
+                >
+                  {scores.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#18181b', borderColor: '#27272a', borderRadius: '8px' }}
+                  itemStyle={{ color: '#fafafa' }}
+                />
+                <Legend iconType="circle" />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

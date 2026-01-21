@@ -7,10 +7,20 @@ import io
 from . import models, database
 from .database import engine
 
+from fastapi.middleware.cors import CORSMiddleware
+
 # Create tables
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="EduGraph API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Allow all origins for dev convenience
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Dependency
 def get_db():
